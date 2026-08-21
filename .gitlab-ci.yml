@@ -1,0 +1,42 @@
+# Пайплайн проекта "Каршеринг — учебный pet-проект по проектированию БД"
+# Разворачивает PostgreSQL и последовательно применяет все SQL-скрипты проекта,
+# проверяя, что схема и данные разворачиваются без ошибок с нуля.
+
+stages:
+  - schema
+  - data
+  - verify
+
+variables:
+  POSTGRES_DB: carsharing_db
+  POSTGRES_USER: postgres
+  POSTGRES_PASSWORD: postgres
+  PGHOST: postgres
+  PGPASSWORD: postgres
+
+services:
+  - postgres:16
+
+# Шаг 1: создание всех таблиц схемы (scripts/01_ddl.sql)
+create_schema:
+  stage: schema
+  image: postgres:16
+  script:
+    - psql -h $PGHOST -U $POSTGRES_USER -d $POSTGRES_DB -f scripts/01_ddl.sql
+
+# Шаг 2: заполнение таблиц данными (scripts/02_dml.sql)
+load_data:
+  stage: data
+  image: postgres:16
+  script:
+    - psql -h $PGHOST -U $POSTGRES_USER -d $POSTGRES_DB -f scripts/01_ddl.sql
+    - psql -h $PGHOST -U $POSTGRES_USER -d $POSTGRES_DB -f scripts/02_dml.sql
+
+# Шаг 3: применение дополнительных объектов схемы — индексы, представления, процедуры
+
+  stage: verify
+  image: postgres:16
+  script:
+    - psql -h $PGHOST -U $POSTGRES_USER -d $POSTGRES_DB -f scripts/01_ddl.sql
+    - psql -h $PGHOST -U $POSTGRES_USER -d $POSTGRES_DB -f scripts/02_dml.sql
+    - psql -h $PGHOST -U $POSTGRES_USER -d $POSTGRES_DB -c "SELECT COUNT(*) FROM trips;"
